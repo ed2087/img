@@ -124,277 +124,373 @@ class ImageConverter {
         document.addEventListener('drop', (e) => e.preventDefault());
     }
 
-    bindSettingsEvents() {
-        // Format selection
-        document.querySelectorAll('.format-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.settings.format = btn.dataset.format;
-                this.updateQualitySlider();
-                this.saveSettings();
-            });
+bindSettingsEvents() {
+    // Format selection
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.format-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            this.settings.format = btn.dataset.format;
+            this.updateQualitySlider();
+            this.saveSettings();
         });
+    });
 
-        // Quality slider
-        const qualitySlider = document.getElementById('quality-slider');
-        const qualityValue = document.getElementById('quality-value');
-        if (qualitySlider) {
-            qualitySlider.addEventListener('input', (e) => {
-                qualityValue.textContent = e.target.value;
-                this.settings.quality = parseInt(e.target.value);
-                this.updateSizeEstimate();
-                this.saveSettings();
-            });
-        }
-
-        // Resize presets
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                if (btn.dataset.custom) {
-                    document.getElementById('custom-dimensions').classList.remove('hidden');
-                    this.settings.resize.custom = true;
-                } else {
-                    document.getElementById('custom-dimensions').classList.add('hidden');
-                    this.settings.resize.width = parseInt(btn.dataset.width);
-                    this.settings.resize.height = parseInt(btn.dataset.height);
-                    this.settings.resize.custom = false;
-                }
-                this.saveSettings();
-            });
+    // Quality slider
+    const qualitySlider = document.getElementById('quality-slider');
+    const qualityValue = document.getElementById('quality-value');
+    if (qualitySlider) {
+        qualitySlider.addEventListener('input', (e) => {
+            qualityValue.textContent = e.target.value;
+            this.settings.quality = parseInt(e.target.value);
+            this.updateSizeEstimate();
+            this.saveSettings();
         });
-
-        // Custom dimensions
-        const customWidth = document.getElementById('custom-width');
-        const customHeight = document.getElementById('custom-height');
-        const aspectLock = document.getElementById('aspect-lock');
-        
-        if (customWidth && customHeight && aspectLock) {
-            let aspectRatio = 16/9; // Default aspect ratio
-            
-            customWidth.addEventListener('input', (e) => {
-                if (aspectLock.classList.contains('active')) {
-                    customHeight.value = Math.round(e.target.value / aspectRatio);
-                }
-                this.settings.resize.width = parseInt(e.target.value) || 1920;
-                this.settings.resize.height = parseInt(customHeight.value) || 1080;
-                this.saveSettings();
-            });
-            
-            customHeight.addEventListener('input', (e) => {
-                if (aspectLock.classList.contains('active')) {
-                    customWidth.value = Math.round(e.target.value * aspectRatio);
-                }
-                this.settings.resize.width = parseInt(customWidth.value) || 1920;
-                this.settings.resize.height = parseInt(e.target.value) || 1080;
-                this.saveSettings();
-            });
-            
-            aspectLock.addEventListener('click', () => {
-                aspectLock.classList.toggle('active');
-                if (aspectLock.classList.contains('active')) {
-                    aspectRatio = (parseInt(customWidth.value) || 1920) / (parseInt(customHeight.value) || 1080);
-                }
-            });
-        }
-
-        // Watermark tabs
-        document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                this.settings.watermark.type = btn.dataset.type;
-                this.updateWatermarkUI();
-                this.saveSettings();
-            });
-        });
-
-        // Watermark text input
-        const watermarkText = document.getElementById('watermark-text');
-        if (watermarkText) {
-            watermarkText.addEventListener('input', (e) => {
-                this.settings.watermark.text = e.target.value;
-                this.saveSettings();
-            });
-        }
-
-        // Watermark font
-        const watermarkFont = document.getElementById('watermark-font');
-        if (watermarkFont) {
-            watermarkFont.addEventListener('change', (e) => {
-                this.settings.watermark.font = e.target.value;
-                this.saveSettings();
-            });
-        }
-
-        // Position buttons
-        document.querySelectorAll('.position-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                this.settings.watermark.position = btn.dataset.position;
-                this.saveSettings();
-            });
-        });
-
-        // Opacity slider
-        const opacitySlider = document.getElementById('opacity-slider');
-        const opacityValue = document.getElementById('opacity-value');
-        if (opacitySlider && opacityValue) {
-            opacitySlider.addEventListener('input', (e) => {
-                opacityValue.textContent = e.target.value;
-                this.settings.watermark.opacity = parseInt(e.target.value) / 100;
-                this.saveSettings();
-            });
-        }
-
-        // Naming tabs
-        document.querySelectorAll('.naming-tabs .tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.naming-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                this.settings.naming.type = btn.dataset.naming;
-                this.updateNamingUI();
-                this.saveSettings();
-            });
-        });
-
-        // Custom naming inputs
-        const namingPrefix = document.getElementById('naming-prefix');
-        const namingStart = document.getElementById('naming-start');
-        
-        if (namingPrefix) {
-            namingPrefix.addEventListener('input', (e) => {
-                this.settings.naming.prefix = e.target.value;
-                this.updateNamingPreview();
-                this.saveSettings();
-            });
-        }
-        
-        if (namingStart) {
-            namingStart.addEventListener('input', (e) => {
-                this.settings.naming.start = parseInt(e.target.value) || 1;
-                this.updateNamingPreview();
-                this.saveSettings();
-            });
-        }
-
-        // Settings actions
-        const resetBtn = document.getElementById('reset-settings');
-        const saveBtn = document.getElementById('save-settings');
-        
-        if (resetBtn) resetBtn.addEventListener('click', () => this.resetSettings());
-        if (saveBtn) saveBtn.addEventListener('click', () => this.closeSettings());
     }
 
-    setupWatermarkListeners() {
-        console.log('🔧 Setting up watermark upload listeners...');
-
-        const watermarkUploadBtn = document.getElementById('watermark-upload-btn');
-        const watermarkInput = document.getElementById('watermark-input');
-        const watermarkPreview = document.getElementById('watermark-preview');
-        const watermarkImage = document.getElementById('watermark-image');
-        const removeWatermarkBtn = document.getElementById('remove-watermark');
-
-        console.log('🔍 Watermark elements check:', {
-            uploadBtn: !!watermarkUploadBtn,
-            input: !!watermarkInput,
-            preview: !!watermarkPreview,
-            image: !!watermarkImage,
-            removeBtn: !!removeWatermarkBtn
+    // Resize presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.preset-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            if (btn.dataset.custom) {
+                document.getElementById('custom-dimensions').classList.remove('hidden');
+                this.settings.resize.custom = true;
+            } else {
+                document.getElementById('custom-dimensions').classList.add('hidden');
+                this.settings.resize.width = parseInt(btn.dataset.width);
+                this.settings.resize.height = parseInt(btn.dataset.height);
+                this.settings.resize.custom = false;
+            }
+            this.saveSettings();
         });
+    });
 
-        if (watermarkUploadBtn && watermarkInput) {
-            console.log('✅ Adding watermark upload listeners');
+    // Custom dimensions
+    const customWidth = document.getElementById('custom-width');
+    const customHeight = document.getElementById('custom-height');
+    const aspectLock = document.getElementById('aspect-lock');
+    
+    if (customWidth && customHeight && aspectLock) {
+        let aspectRatio = 16/9; // Default aspect ratio
+        
+        customWidth.addEventListener('input', (e) => {
+            if (aspectLock.classList.contains('active')) {
+                customHeight.value = Math.round(e.target.value / aspectRatio);
+            }
+            this.settings.resize.width = parseInt(e.target.value) || 1920;
+            this.settings.resize.height = parseInt(customHeight.value) || 1080;
+            this.saveSettings();
+        });
+        
+        customHeight.addEventListener('input', (e) => {
+            if (aspectLock.classList.contains('active')) {
+                customWidth.value = Math.round(e.target.value * aspectRatio);
+            }
+            this.settings.resize.width = parseInt(customWidth.value) || 1920;
+            this.settings.resize.height = parseInt(e.target.value) || 1080;
+            this.saveSettings();
+        });
+        
+        aspectLock.addEventListener('click', () => {
+            aspectLock.classList.toggle('active');
+            if (aspectLock.classList.contains('active')) {
+                aspectRatio = (parseInt(customWidth.value) || 1920) / (parseInt(customHeight.value) || 1080);
+            }
+        });
+    }
+
+    // Watermark tabs
+    document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             
-            watermarkUploadBtn.addEventListener('click', (e) => {
-                console.log('🖱️ Watermark upload button clicked!');
-                e.preventDefault();
-                e.stopPropagation();
-                watermarkInput.click();
-            });
+            this.settings.watermark.type = btn.dataset.type;
+            this.updateWatermarkUI();
+            this.saveSettings();
+        });
+    });
+
+    // Watermark text input
+    const watermarkText = document.getElementById('watermark-text');
+    if (watermarkText) {
+        watermarkText.addEventListener('input', (e) => {
+            this.settings.watermark.text = e.target.value;
+            this.updateWatermarkPreview();
+            this.saveSettings();
+        });
+    }
+
+    // Watermark font
+    const watermarkFont = document.getElementById('watermark-font');
+    if (watermarkFont) {
+        watermarkFont.addEventListener('change', (e) => {
+            this.settings.watermark.font = e.target.value;
+            this.updateWatermarkPreview();
+            this.saveSettings();
+        });
+    }
+
+    // Font size slider
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeValue = document.getElementById('font-size-value');
+    if (fontSizeSlider && fontSizeValue) {
+        fontSizeSlider.addEventListener('input', (e) => {
+            fontSizeValue.textContent = e.target.value;
+            this.settings.watermark.fontSize = parseInt(e.target.value);
+            this.updateWatermarkPreview();
+            this.saveSettings();
+        });
+    }
+
+    // Font style buttons
+    document.querySelectorAll('.style-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.style-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            this.settings.watermark.fontStyle = btn.dataset.style;
+            this.updateWatermarkPreview();
+            this.saveSettings();
+        });
+    });
+
+    // Position buttons
+    document.querySelectorAll('.position-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.position-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            this.settings.watermark.position = btn.dataset.position;
+            this.saveSettings();
+        });
+    });
+
+    // Opacity slider
+    const opacitySlider = document.getElementById('opacity-slider');
+    const opacityValue = document.getElementById('opacity-value');
+    if (opacitySlider && opacityValue) {
+        opacitySlider.addEventListener('input', (e) => {
+            opacityValue.textContent = e.target.value;
+            this.settings.watermark.opacity = parseInt(e.target.value) / 100;
+            this.saveSettings();
+        });
+    }
+
+    // Naming tabs
+    document.querySelectorAll('.naming-tabs .tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.naming-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
             
-            watermarkInput.addEventListener('change', async (e) => {
-                console.log('📁 File input changed, files:', e.target.files.length);
-                const file = e.target.files[0];
-                
-                if (file && file.type.startsWith('image/')) {
-                    console.log('🖼️ Valid image selected:', file.name, file.type);
-                    try {
-                        // Show preview immediately
-                        const reader = new FileReader();
-                        reader.onload = (event) => {
-                            console.log('📸 Showing preview');
-                            if (watermarkImage && watermarkPreview) {
-                                watermarkImage.src = event.target.result;
-                                watermarkPreview.classList.remove('hidden');
-                            }
-                        };
-                        reader.readAsDataURL(file);
-                        
-                        // Upload to server
-                        console.log('📤 Starting upload to server...');
-                        const formData = new FormData();
-                        formData.append('watermark', file);
-                        
-                        const response = await fetch('/api/upload/watermark', {
-                            method: 'POST',
-                            body: formData
-                        });
-                        
-                        console.log('📥 Server response status:', response.status);
-                        
-                        if (response.ok) {
-                            const result = await response.json();
-                            console.log('✅ Upload successful:', result);
-                            this.settings.watermark.imagePath = result.watermark.path;
-                            this.settings.watermark.imageUrl = result.watermark.path;
-                            this.saveSettings();
-                            this.showToast('Watermark uploaded successfully!', 'success');
-                        } else {
-                            const errorData = await response.json().catch(() => ({}));
-                            console.error('❌ Upload failed:', errorData);
-                            throw new Error(errorData.message || 'Upload failed');
+            this.settings.naming.type = btn.dataset.naming;
+            this.updateNamingUI();
+            this.saveSettings();
+        });
+    });
+
+    // Custom naming inputs
+    const namingPrefix = document.getElementById('naming-prefix');
+    const namingStart = document.getElementById('naming-start');
+    
+    if (namingPrefix) {
+        namingPrefix.addEventListener('input', (e) => {
+            this.settings.naming.prefix = e.target.value;
+            this.updateNamingPreview();
+            this.saveSettings();
+        });
+    }
+    
+    if (namingStart) {
+        namingStart.addEventListener('input', (e) => {
+            this.settings.naming.start = parseInt(e.target.value) || 1;
+            this.updateNamingPreview();
+            this.saveSettings();
+        });
+    }
+
+    // Settings actions
+    const resetBtn = document.getElementById('reset-settings');
+    const saveBtn = document.getElementById('save-settings');
+    
+    if (resetBtn) resetBtn.addEventListener('click', () => this.resetSettings());
+    if (saveBtn) saveBtn.addEventListener('click', () => this.closeSettings());
+}
+
+setupWatermarkListeners() {
+    console.log('🔧 Setting up watermark upload listeners...');
+
+    const watermarkUploadBtn = document.getElementById('watermark-upload-btn');
+    const watermarkInput = document.getElementById('watermark-input');
+    const watermarkPreview = document.getElementById('watermark-preview');
+    const watermarkImage = document.getElementById('watermark-image');
+    const removeWatermarkBtn = document.getElementById('remove-watermark');
+
+    console.log('🔍 Watermark elements check:', {
+        uploadBtn: !!watermarkUploadBtn,
+        input: !!watermarkInput,
+        preview: !!watermarkPreview,
+        image: !!watermarkImage,
+        removeBtn: !!removeWatermarkBtn
+    });
+
+    if (watermarkUploadBtn && watermarkInput) {
+        console.log('✅ Adding watermark upload listeners');
+        
+        // Remove any existing listeners by cloning elements
+        const newUploadBtn = watermarkUploadBtn.cloneNode(true);
+        watermarkUploadBtn.parentNode.replaceChild(newUploadBtn, watermarkUploadBtn);
+        
+        const newInput = watermarkInput.cloneNode(true);
+        watermarkInput.parentNode.replaceChild(newInput, watermarkInput);
+        
+        // Add fresh listeners
+        newUploadBtn.addEventListener('click', (e) => {
+            console.log('🖱️ Watermark upload button clicked!');
+            e.preventDefault();
+            e.stopPropagation();
+            newInput.click();
+        });
+        
+        newInput.addEventListener('change', async (e) => {
+            console.log('📁 File input changed, files:', e.target.files.length);
+            const file = e.target.files[0];
+            
+            if (file && file.type.startsWith('image/')) {
+                console.log('🖼️ Valid image selected:', file.name, file.type);
+                try {
+                    // Show preview immediately
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        console.log('📸 Showing preview');
+                        const currentWatermarkImage = document.getElementById('watermark-image');
+                        const currentWatermarkPreview = document.getElementById('watermark-preview');
+                        if (currentWatermarkImage && currentWatermarkPreview) {
+                            currentWatermarkImage.src = event.target.result;
+                            currentWatermarkPreview.classList.remove('hidden');
                         }
-                        
-                    } catch (error) {
-                        console.error('❌ Watermark upload error:', error);
-                        this.showToast('Failed to upload watermark: ' + error.message, 'error');
+                    };
+                    reader.readAsDataURL(file);
+                    
+                    // Upload to server
+                    console.log('📤 Starting upload to server...');
+                    const formData = new FormData();
+                    formData.append('watermark', file);
+                    
+                    const response = await fetch('/api/upload/watermark', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    console.log('📥 Server response status:', response.status);
+                    
+                    if (response.ok) {
+                        const result = await response.json();
+                        console.log('✅ Upload successful:', result);
+                        this.settings.watermark.imagePath = result.watermark.path;
+                        this.settings.watermark.imageUrl = result.watermark.path;
+                        this.saveSettings();
+                        this.showToast('Watermark uploaded successfully!', 'success');
+                    } else {
+                        const errorData = await response.json().catch(() => ({}));
+                        console.error('❌ Upload failed:', errorData);
+                        throw new Error(errorData.message || 'Upload failed');
                     }
-                } else {
-                    console.log('⚠️ Invalid file selected');
-                    this.showToast('Please select a valid image file', 'warning');
+                    
+                } catch (error) {
+                    console.error('❌ Watermark upload error:', error);
+                    this.showToast('Failed to upload watermark: ' + error.message, 'error');
+                    
+                    // Hide preview on error
+                    const currentWatermarkPreview = document.getElementById('watermark-preview');
+                    if (currentWatermarkPreview) {
+                        currentWatermarkPreview.classList.add('hidden');
+                    }
                 }
-                
-                // Reset input
-                e.target.value = '';
-            });
-        } else {
-            console.error('❌ Watermark upload elements not found!');
-        }
-
-        if (removeWatermarkBtn) {
-            removeWatermarkBtn.addEventListener('click', (e) => {
-                console.log('🗑️ Remove watermark clicked');
-                e.preventDefault();
-                if (watermarkPreview && watermarkImage) {
-                    watermarkPreview.classList.add('hidden');
-                    watermarkImage.src = '';
-                }
-                this.settings.watermark.imagePath = null;
-                this.settings.watermark.imageUrl = null;
-                this.saveSettings();
-                this.showToast('Watermark removed', 'success');
-            });
-        }
+            } else {
+                console.log('⚠️ Invalid file selected');
+                this.showToast('Please select a valid image file', 'warning');
+            }
+            
+            // Reset input
+            e.target.value = '';
+        });
+    } else {
+        console.error('❌ Watermark upload elements not found!');
     }
 
-    // File handling methods
+    // Set up remove button listener
+    if (removeWatermarkBtn) {
+        const newRemoveBtn = removeWatermarkBtn.cloneNode(true);
+        removeWatermarkBtn.parentNode.replaceChild(newRemoveBtn, removeWatermarkBtn);
+        
+        newRemoveBtn.addEventListener('click', (e) => {
+            console.log('🗑️ Remove watermark clicked');
+            e.preventDefault();
+            const currentWatermarkPreview = document.getElementById('watermark-preview');
+            const currentWatermarkImage = document.getElementById('watermark-image');
+            if (currentWatermarkPreview && currentWatermarkImage) {
+                currentWatermarkPreview.classList.add('hidden');
+                currentWatermarkImage.src = '';
+            }
+            this.settings.watermark.imagePath = null;
+            this.settings.watermark.imageUrl = null;
+            this.saveSettings();
+            this.showToast('Watermark removed', 'success');
+        });
+    }
+}
+
+updateWatermarkPreview() {
+    // Only show preview for text watermarks
+    if (this.settings.watermark.type !== 'text') {
+        const existingPreview = document.querySelector('.font-preview');
+        if (existingPreview) {
+            existingPreview.remove();
+        }
+        return;
+    }
+
+    let previewContainer = document.querySelector('.font-preview');
+    
+    if (!previewContainer) {
+        // Create preview if it doesn't exist
+        const textWatermark = document.getElementById('text-watermark');
+        if (textWatermark) {
+            previewContainer = document.createElement('div');
+            previewContainer.className = 'font-preview';
+            previewContainer.innerHTML = `
+                <div class="font-preview-text" id="watermark-preview-text">Sample Watermark</div>
+                <div class="font-preview-info" id="watermark-preview-info">Preview</div>
+            `;
+            textWatermark.appendChild(previewContainer);
+        }
+    }
+    
+    const previewText = document.getElementById('watermark-preview-text');
+    const previewInfo = document.getElementById('watermark-preview-info');
+    
+    if (previewText && previewInfo) {
+        const text = this.settings.watermark.text || 'Sample Watermark';
+        const font = this.settings.watermark.font || 'Arial';
+        const fontSize = this.settings.watermark.fontSize || 24;
+        const fontStyle = this.settings.watermark.fontStyle || 'bold';
+        const opacity = this.settings.watermark.opacity || 0.7;
+        
+        previewText.textContent = text;
+        previewText.style.fontFamily = font;
+        previewText.style.fontSize = fontSize + 'px';
+        previewText.style.fontWeight = fontStyle.includes('bold') ? 'bold' : 'normal';
+        previewText.style.fontStyle = fontStyle.includes('italic') ? 'italic' : 'normal';
+        previewText.style.opacity = opacity;
+        previewText.style.color = 'white';
+        previewText.style.textShadow = '1px 1px 2px rgba(0,0,0,0.8)';
+        
+        previewInfo.textContent = `${font} • ${fontSize}px • ${fontStyle} • ${Math.round(opacity * 100)}% opacity`;
+    }
+}
+
+    // File handling methods loadSettings
     handleDragOver(e) {
         e.preventDefault();
         this.uploadZone.classList.add('drag-over');
@@ -668,35 +764,62 @@ class ImageConverter {
         document.body.style.overflow = '';
     }
 
-    loadSettings() {
-        const defaultSettings = {
-            format: 'webp',
-            quality: 85,
-            resize: {
-                width: 1920,
-                height: 1080,
-                custom: false,
-                fit: 'inside'
-            },
-            watermark: {
-                type: 'none',
-                text: 'Watermark',
-                font: 'Arial',
-                position: 'southeast',
-                opacity: 0.7,
-                imagePath: null,
-                imageUrl: null
-            },
-            naming: {
-                type: 'original',
-                prefix: 'image',
-                start: 1
-            }
-        };
+loadSettings() {
+    const defaultSettings = {
+        format: 'webp',
+        quality: 85,
+        resize: {
+            width: 1920,
+            height: 1080,
+            custom: false,
+            fit: 'inside'
+        },
+        watermark: {
+            type: 'none',
+            text: 'Watermark',
+            font: 'Arial',
+            fontSize: 24,
+            fontStyle: 'bold',
+            position: 'southeast',
+            opacity: 0.7,
+            imagePath: null,
+            imageUrl: null
+        },
+        naming: {
+            type: 'original',
+            prefix: 'image',
+            start: 1
+        }
+    };
 
-        const saved = localStorage.getItem('imageConverterSettings');
-        return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    const saved = localStorage.getItem('imageConverterSettings');
+    if (saved) {
+        try {
+            const parsedSettings = JSON.parse(saved);
+            // Merge with defaults to ensure all properties exist
+            return {
+                ...defaultSettings,
+                ...parsedSettings,
+                watermark: {
+                    ...defaultSettings.watermark,
+                    ...parsedSettings.watermark
+                },
+                resize: {
+                    ...defaultSettings.resize,
+                    ...parsedSettings.resize
+                },
+                naming: {
+                    ...defaultSettings.naming,
+                    ...parsedSettings.naming
+                }
+            };
+        } catch (error) {
+            console.error('Error parsing saved settings:', error);
+            return defaultSettings;
+        }
     }
+    return defaultSettings;
+}
 
     saveSettings() {
         localStorage.setItem('imageConverterSettings', JSON.stringify(this.settings));
@@ -711,113 +834,171 @@ class ImageConverter {
         }
     }
 
-    updateSettingsUI() {
-        // Update format selection
-        document.querySelectorAll('.format-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.format === this.settings.format);
-        });
+updateSettingsUI() {
+    // Update format selection
+    document.querySelectorAll('.format-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.format === this.settings.format);
+    });
 
-        // Update quality slider
-        const qualitySlider = document.getElementById('quality-slider');
-        const qualityValue = document.getElementById('quality-value');
-        if (qualitySlider && qualityValue) {
-            qualitySlider.value = this.settings.quality;
-            qualityValue.textContent = this.settings.quality;
-        }
-
-        // Update resize presets
-        document.querySelectorAll('.preset-btn').forEach(btn => {
-            const isCustom = btn.dataset.custom === 'true';
-            const isActive = isCustom ? this.settings.resize.custom : 
-                (parseInt(btn.dataset.width) === this.settings.resize.width && 
-                 parseInt(btn.dataset.height) === this.settings.resize.height);
-            btn.classList.toggle('active', isActive);
-        });
-
-        // Update custom dimensions
-        const customWidth = document.getElementById('custom-width');
-        const customHeight = document.getElementById('custom-height');
-        const customDimensions = document.getElementById('custom-dimensions');
-        
-        if (customWidth) customWidth.value = this.settings.resize.width;
-        if (customHeight) customHeight.value = this.settings.resize.height;
-        if (customDimensions) customDimensions.classList.toggle('hidden', !this.settings.resize.custom);
-
-        // Update watermark
-        document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.type === this.settings.watermark.type);
-        });
-        
-        this.updateWatermarkUI();
-        this.updateNamingUI();
-        this.updateQualitySlider();
-        this.updateSizeEstimate();
+    // Update quality slider
+    const qualitySlider = document.getElementById('quality-slider');
+    const qualityValue = document.getElementById('quality-value');
+    if (qualitySlider && qualityValue) {
+        qualitySlider.value = this.settings.quality;
+        qualityValue.textContent = this.settings.quality;
     }
 
-    updateWatermarkUI() {
-        const type = this.settings.watermark.type;
-        
-        const textWatermark = document.getElementById('text-watermark');
-        const imageWatermark = document.getElementById('image-watermark');
-        const watermarkControls = document.getElementById('watermark-controls');
-        
-        if (textWatermark) textWatermark.classList.toggle('hidden', type !== 'text');
-        if (imageWatermark) imageWatermark.classList.toggle('hidden', type !== 'image');
-        if (watermarkControls) watermarkControls.classList.toggle('hidden', type === 'none');
-        
-        if (type === 'text') {
-            const watermarkText = document.getElementById('watermark-text');
-            const watermarkFont = document.getElementById('watermark-font');
-            if (watermarkText) watermarkText.value = this.settings.watermark.text;
-            if (watermarkFont) watermarkFont.value = this.settings.watermark.font;
-        }
-        
-        // Handle image watermark preview
-        if (type === 'image') {
-            const watermarkPreview = document.getElementById('watermark-preview');
-            const watermarkImage = document.getElementById('watermark-image');
-            
-            if (this.settings.watermark.imageUrl && watermarkImage) {
-                watermarkImage.src = this.settings.watermark.imageUrl;
-                if (watermarkPreview) watermarkPreview.classList.remove('hidden');
-            }
-        }
-        
-        // Update position
-        document.querySelectorAll('.position-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.position === this.settings.watermark.position);
-        });
-        
-        // Update opacity
-        const opacitySlider = document.getElementById('opacity-slider');
-        const opacityValue = document.getElementById('opacity-value');
-        if (opacitySlider && opacityValue) {
-            const opacity = Math.round(this.settings.watermark.opacity * 100);
-            opacitySlider.value = opacity;
-            opacityValue.textContent = opacity;
-        }
+    // Update resize presets
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+        const isCustom = btn.dataset.custom === 'true';
+        const isActive = isCustom ? this.settings.resize.custom : 
+            (parseInt(btn.dataset.width) === this.settings.resize.width && 
+             parseInt(btn.dataset.height) === this.settings.resize.height);
+        btn.classList.toggle('active', isActive);
+    });
+
+    // Update custom dimensions
+    const customWidth = document.getElementById('custom-width');
+    const customHeight = document.getElementById('custom-height');
+    const customDimensions = document.getElementById('custom-dimensions');
+    
+    if (customWidth) customWidth.value = this.settings.resize.width;
+    if (customHeight) customHeight.value = this.settings.resize.height;
+    if (customDimensions) customDimensions.classList.toggle('hidden', !this.settings.resize.custom);
+
+    // Update watermark
+    document.querySelectorAll('.watermark-type-tabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === this.settings.watermark.type);
+    });
+
+    // Update watermark text input
+    const watermarkText = document.getElementById('watermark-text');
+    if (watermarkText) {
+        watermarkText.value = this.settings.watermark.text || 'Watermark';
     }
 
-    updateNamingUI() {
-        const type = this.settings.naming.type;
+    // Update watermark font
+    const watermarkFont = document.getElementById('watermark-font');
+    if (watermarkFont) {
+        watermarkFont.value = this.settings.watermark.font || 'Arial';
+    }
+
+    // Update font size slider
+    const fontSizeSlider = document.getElementById('font-size-slider');
+    const fontSizeValue = document.getElementById('font-size-value');
+    if (fontSizeSlider && fontSizeValue) {
+        fontSizeSlider.value = this.settings.watermark.fontSize || 24;
+        fontSizeValue.textContent = this.settings.watermark.fontSize || 24;
+    }
+
+    // Update font style buttons
+    document.querySelectorAll('.style-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.style === (this.settings.watermark.fontStyle || 'bold'));
+    });
+    
+    this.updateWatermarkUI();
+    this.updateNamingUI();
+    this.updateQualitySlider();
+    this.updateSizeEstimate();
+    
+    // Update watermark preview
+    this.updateWatermarkPreview();
+}
+
+updateWatermarkUI() {
+    const type = this.settings.watermark.type;
+    
+    const textWatermark = document.getElementById('text-watermark');
+    const imageWatermark = document.getElementById('image-watermark');
+    const watermarkControls = document.getElementById('watermark-controls');
+    
+    if (textWatermark) textWatermark.classList.toggle('hidden', type !== 'text');
+    if (imageWatermark) imageWatermark.classList.toggle('hidden', type !== 'image');
+    if (watermarkControls) watermarkControls.classList.toggle('hidden', type === 'none');
+    
+    if (type === 'text') {
+        const watermarkText = document.getElementById('watermark-text');
+        const watermarkFont = document.getElementById('watermark-font');
+        if (watermarkText) watermarkText.value = this.settings.watermark.text || 'Watermark';
+        if (watermarkFont) watermarkFont.value = this.settings.watermark.font || 'Arial';
         
-        document.querySelectorAll('.naming-tabs .tab-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.naming === type);
+        // Update font size controls
+        const fontSizeSlider = document.getElementById('font-size-slider');
+        const fontSizeValue = document.getElementById('font-size-value');
+        if (fontSizeSlider && fontSizeValue) {
+            fontSizeSlider.value = this.settings.watermark.fontSize || 24;
+            fontSizeValue.textContent = this.settings.watermark.fontSize || 24;
+        }
+        
+        // Update font style buttons
+        document.querySelectorAll('.style-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.style === (this.settings.watermark.fontStyle || 'bold'));
         });
         
-        const customNaming = document.getElementById('custom-naming');
-        if (customNaming) {
-            customNaming.classList.toggle('hidden', type !== 'custom' && type !== 'numbered');
-        }
+        // Update preview
+        this.updateWatermarkPreview();
+    }
+    
+    // Handle image watermark preview
+    if (type === 'image') {
+        const watermarkPreview = document.getElementById('watermark-preview');
+        const watermarkImage = document.getElementById('watermark-image');
         
-        if (type === 'custom' || type === 'numbered') {
-            const namingPrefix = document.getElementById('naming-prefix');
-            const namingStart = document.getElementById('naming-start');
-            if (namingPrefix) namingPrefix.value = this.settings.naming.prefix;
-            if (namingStart) namingStart.value = this.settings.naming.start;
-            this.updateNamingPreview();
+        if (this.settings.watermark.imageUrl && watermarkImage) {
+            watermarkImage.src = this.settings.watermark.imageUrl;
+            if (watermarkPreview) watermarkPreview.classList.remove('hidden');
+        } else {
+            if (watermarkPreview) watermarkPreview.classList.add('hidden');
         }
     }
+    
+    // Update position
+    document.querySelectorAll('.position-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.position === this.settings.watermark.position);
+    });
+    
+    // Update opacity
+    const opacitySlider = document.getElementById('opacity-slider');
+    const opacityValue = document.getElementById('opacity-value');
+    if (opacitySlider && opacityValue) {
+        const opacity = Math.round((this.settings.watermark.opacity || 0.7) * 100);
+        opacitySlider.value = opacity;
+        opacityValue.textContent = opacity;
+    }
+}
+
+updateNamingUI() {
+    const type = this.settings.naming.type;
+    
+    document.querySelectorAll('.naming-tabs .tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.naming === type);
+    });
+    
+    const customNaming = document.getElementById('custom-naming');
+    if (customNaming) {
+        customNaming.classList.toggle('hidden', type !== 'custom' && type !== 'numbered');
+    }
+    
+    if (type === 'custom' || type === 'numbered') {
+        const namingPrefix = document.getElementById('naming-prefix');
+        const namingStart = document.getElementById('naming-start');
+        if (namingPrefix) namingPrefix.value = this.settings.naming.prefix;
+        if (namingStart) namingStart.value = this.settings.naming.start;
+        this.updateNamingPreview();
+    }
+}
+
+// Complete updateNamingPreview method
+updateNamingPreview() {
+    const preview = document.getElementById('naming-preview-text');
+    const type = this.settings.naming.type;
+    
+    if (preview && (type === 'custom' || type === 'numbered')) {
+        const number = String(this.settings.naming.start).padStart(3, '0');
+        const extension = this.getFileExtension();
+        preview.textContent = `${this.settings.naming.prefix}${number}.${extension}`;
+    }
+}
 
     updateNamingPreview() {
 const preview = document.getElementById('naming-preview-text');
@@ -830,48 +1011,48 @@ const preview = document.getElementById('naming-preview-text');
        }
    }
 
-   updateQualitySlider() {
-       const format = this.settings.format;
-       const qualitySlider = document.getElementById('quality-slider');
-       const qualityLabel = qualitySlider?.previousElementSibling;
-       
-       if (qualitySlider && qualityLabel) {
-           if (format === 'png') {
-               qualitySlider.style.display = 'none';
-               qualityLabel.style.display = 'none';
-           } else {
-               qualitySlider.style.display = 'block';
-               qualityLabel.style.display = 'block';
-           }
-       }
-   }
+updateQualitySlider() {
+    const format = this.settings.format;
+    const qualitySlider = document.getElementById('quality-slider');
+    const qualityLabel = qualitySlider?.previousElementSibling;
+    
+    if (qualitySlider && qualityLabel) {
+        if (format === 'png') {
+            qualitySlider.style.display = 'none';
+            qualityLabel.style.display = 'none';
+        } else {
+            qualitySlider.style.display = 'block';
+            qualityLabel.style.display = 'block';
+        }
+    }
+}
 
-   updateSizeEstimate() {
-       const quality = this.settings.quality;
-       const format = this.settings.format;
-       let reduction;
-       
-       switch (format) {
-           case 'webp':
-               reduction = Math.round(75 - (quality * 0.3));
-               break;
-           case 'jpeg':
-               reduction = Math.round(60 - (quality * 0.4));
-               break;
-           case 'avif':
-               reduction = Math.round(80 - (quality * 0.2));
-               break;
-           default:
-               reduction = 0;
-       }
-       
-       const estimate = document.getElementById('size-estimate');
-       if (estimate) {
-           estimate.textContent = reduction > 0 ? `~${reduction}% smaller` : 'Lossless';
-       }
-   }
+updateSizeEstimate() {
+    const quality = this.settings.quality;
+    const format = this.settings.format;
+    let reduction;
+    
+    switch (format) {
+        case 'webp':
+            reduction = Math.round(75 - (quality * 0.3));
+            break;
+        case 'jpeg':
+            reduction = Math.round(60 - (quality * 0.4));
+            break;
+        case 'avif':
+            reduction = Math.round(80 - (quality * 0.2));
+            break;
+        default:
+            reduction = 0;
+    }
+    
+    const estimate = document.getElementById('size-estimate');
+    if (estimate) {
+        estimate.textContent = reduction > 0 ? `~${reduction}% smaller` : 'Lossless';
+    }
+}
 
-   // Processing methods
+   // Processing methods getFileExtension
    async startProcessing() {
        if (this.processing || this.uploadedImages.length === 0) return;
        
@@ -1249,15 +1430,15 @@ const preview = document.getElementById('naming-preview-text');
        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
    }
 
-   getFileExtension() {
-       const formatMap = {
-           'webp': 'webp',
-           'jpeg': 'jpg',
-           'png': 'png',
-           'avif': 'avif'
-       };
-       return formatMap[this.settings.format] || 'webp';
-   }
+getFileExtension() {
+    const formatMap = {
+        'webp': 'webp',
+        'jpeg': 'jpg',
+        'png': 'png',
+        'avif': 'avif'
+    };
+    return formatMap[this.settings.format] || 'webp';
+}
 
    showUploadProgress() {
        if (this.uploadProgress) {
@@ -1461,7 +1642,7 @@ function setMobileViewport() {
 setMobileViewport();
 window.addEventListener('orientationchange', setMobileViewport);
 
-// Error handling for global errors
+// Error handling for global errors bindSettingsEvents
 window.addEventListener('error', (event) => {
    console.error('Global error:', event.error);
    if (window.app) {

@@ -126,14 +126,82 @@
                 </div>
                 
                 <div class="setting-group">
-                    <label class="setting-label">Font</label>
+                    <label class="setting-label">Font Size: <span id="font-size-value">24</span>px</label>
+                    <div class="font-size-slider-container">
+                        <input type="range" id="font-size-slider" class="slider" min="8" max="100" value="24">
+                        <div class="size-indicators">
+                            <span class="size-label">Small</span>
+                            <span class="size-label">Large</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="setting-group">
+                    <label class="setting-label">Font Family</label>
                     <select id="watermark-font" class="select-input">
-                        <option value="Arial">Arial</option>
-                        <option value="Helvetica">Helvetica</option>
-                        <option value="Times New Roman">Times New Roman</option>
-                        <option value="Georgia">Georgia</option>
-                        <option value="Verdana">Verdana</option>
+                        <!-- Web Safe Fonts -->
+                        <optgroup label="Web Safe Fonts">
+                            <option value="Arial">Arial</option>
+                            <option value="Helvetica">Helvetica</option>
+                            <option value="Times New Roman">Times New Roman</option>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Verdana">Verdana</option>
+                            <option value="Comic Sans MS">Comic Sans MS</option>
+                            <option value="Courier New">Courier New</option>
+                            <option value="Impact">Impact</option>
+                        </optgroup>
+                        
+                        <!-- Handwriting & Script Fonts (Google Fonts) -->
+                        <optgroup label="Handwriting & Script">
+                            <option value="Dancing Script">Dancing Script</option>
+                            <option value="Great Vibes">Great Vibes</option>
+                            <option value="Pacifico">Pacifico</option>
+                            <option value="Indie Flower">Indie Flower</option>
+                            <option value="Kaushan Script">Kaushan Script</option>
+                            <option value="Allura">Allura</option>
+                            <option value="Alex Brush">Alex Brush</option>
+                            <option value="Satisfy">Satisfy</option>
+                            <option value="League Script">League Script</option>
+                            <option value="Rochester">Rochester</option>
+                            <option value="Arizonia">Arizonia</option>
+                            <option value="Yellowtail">Yellowtail</option>
+                            <option value="Brush Script MT">Brush Script MT</option>
+                            <option value="Bradley Hand ITC">Bradley Hand ITC</option>
+                            <option value="Lucida Handwriting">Lucida Handwriting</option>
+                        </optgroup>
+                        
+                        <!-- Elegant Scripts -->
+                        <optgroup label="Elegant Scripts">
+                            <option value="Tangerine">Tangerine</option>
+                            <option value="Lobster">Lobster</option>
+                            <option value="Parisienne">Parisienne</option>
+                            <option value="Pinyon Script">Pinyon Script</option>
+                            <option value="Mrs Saint Delafield">Mrs Saint Delafield</option>
+                            <option value="Mr De Haviland">Mr De Haviland</option>
+                            <option value="Monsieur La Doulaise">Monsieur La Doulaise</option>
+                            <option value="Miss Fajardose">Miss Fajardose</option>
+                        </optgroup>
+                        
+                        <!-- Modern Scripts -->
+                        <optgroup label="Modern Scripts">
+                            <option value="Euphoria Script">Euphoria Script</option>
+                            <option value="Niconne">Niconne</option>
+                            <option value="Italianno">Italianno</option>
+                            <option value="Petit Formal Script">Petit Formal Script</option>
+                            <option value="Stalemate">Stalemate</option>
+                            <option value="Herr Von Muellerhoff">Herr Von Muellerhoff</option>
+                        </optgroup>
                     </select>
+                </div>
+
+                <div class="setting-group">
+                    <label class="setting-label">Font Style</label>
+                    <div class="font-style-buttons">
+                        <button type="button" class="style-btn" data-style="normal">Normal</button>
+                        <button type="button" class="style-btn" data-style="bold">Bold</button>
+                        <button type="button" class="style-btn" data-style="italic">Italic</button>
+                        <button type="button" class="style-btn active" data-style="bold italic">Bold Italic</button>
+                    </div>
                 </div>
             </div>
 

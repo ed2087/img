@@ -101,34 +101,50 @@ async applyTextWatermark(image, settings, metadata) {
     const {
         text = 'Sample Watermark',
         font = 'Arial',
+        fontSize = 24,
+        fontStyle = 'bold',
         position = 'center',
         opacity = 0.5
     } = settings;
 
     const safeOpacity = isNaN(opacity) ? 0.5 : parseFloat(opacity);
+    const baseFontSize = parseInt(fontSize) || 24;
     
-    // ✅ FIX: Much smaller font size calculation
-    const fontSize = Math.max(Math.min(metadata.width, metadata.height) * 0.01, 7); // Reduced from 0.05 to 0.02
+    // Calculate responsive font size based on image dimensions
+    const scaleFactor = Math.min(metadata.width, metadata.height) / 1000;
+    const actualFontSize = Math.max(baseFontSize * scaleFactor, 5);
     
-    // ✅ FIX: Better width estimation
-    const estimatedWidth = Math.min(metadata.width * 5, text.length * fontSize * 1); // Reduced multipliers
-    const estimatedHeight = fontSize * 1.5; // Reduced line height
+    // Better width estimation based on character count and font size
+    const estimatedWidth = Math.min(metadata.width * 1.5, text.length * actualFontSize * 1.2);
+    const estimatedHeight = actualFontSize * 1.5;
+
+    // Parse font style
+    const isBold = fontStyle.includes('bold');
+    const isItalic = fontStyle.includes('italic');
+    const fontWeight = isBold ? 'bold' : 'normal';
+    const fontStyleCSS = isItalic ? 'italic' : 'normal';
 
     const textSvg = Buffer.from(`
         <svg width="${estimatedWidth}" height="${estimatedHeight}">
             <style>
                 .watermark {
-                    font-family: ${font}, Arial, sans-serif;
-                    font-size: ${fontSize}px;
-                    font-weight: bold;
+                    font-family: "${font}", Arial, sans-serif;
+                    font-size: ${actualFontSize}px;
+                    font-weight: ${fontWeight};
+                    font-style: ${fontStyleCSS};
                     fill: white;
                     fill-opacity: ${safeOpacity};
                     text-anchor: middle;
                     dominant-baseline: central;
+                    stroke: rgba(0,0,0,0.3);
+                    stroke-width: 0.5px;
                 }
             </style>
             <text x="50%" y="50%" class="watermark">
-                ${text}
+                ${text.replace(/[<>&"']/g, (char) => {
+                    const entities = {'<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;'};
+                    return entities[char];
+                })}
             </text>
         </svg>
     `);
@@ -136,7 +152,7 @@ async applyTextWatermark(image, settings, metadata) {
     const gravity = this.getGravityFromPosition(position);
 
     try {
-        console.log(`📝 Applying text watermark: "${text}" - Font: ${fontSize}px, Size: ${estimatedWidth}x${estimatedHeight}`);
+        console.log(`📝 Applying text watermark: "${text}" - Font: ${font} ${actualFontSize}px ${fontStyle}`);
         
         return await image.composite([{
             input: textSvg,
@@ -148,8 +164,6 @@ async applyTextWatermark(image, settings, metadata) {
         throw err;
     }
 }
-
-
 
 
 async applyImageWatermark(image, settings, baseMeta) {
