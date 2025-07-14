@@ -392,6 +392,7 @@ body::before {
     font-size: var(--font-size-base);
     min-height: 56px;
     border-radius: var(--radius-xl);
+    margin-bottom: 2em;
 }
 
 /* Enhanced Upload Actions */

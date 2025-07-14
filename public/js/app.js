@@ -1,4 +1,4 @@
-// Add this debug function at the top of your app.js file
+// loadSettings Add this debug function at the top of your app.js file startProcessing 
 function debugSettings() {
     console.log('=== Settings Debug ===');
     console.log('Settings panel element:', document.getElementById('settings-panel'));
@@ -352,61 +352,51 @@ setupWatermarkListeners() {
             newInput.click();
         });
         
-        newInput.addEventListener('change', async (e) => {
+        newInput.addEventListener('change', (e) => {
             console.log('📁 File input changed, files:', e.target.files.length);
             const file = e.target.files[0];
             
             if (file && file.type.startsWith('image/')) {
                 console.log('🖼️ Valid image selected:', file.name, file.type);
-                try {
-                    // Show preview immediately
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        console.log('📸 Showing preview');
-                        const currentWatermarkImage = document.getElementById('watermark-image');
-                        const currentWatermarkPreview = document.getElementById('watermark-preview');
-                        if (currentWatermarkImage && currentWatermarkPreview) {
-                            currentWatermarkImage.src = event.target.result;
-                            currentWatermarkPreview.classList.remove('hidden');
-                        }
-                    };
-                    reader.readAsDataURL(file);
+                
+                // Convert to base64 and store in localStorage - NO SERVER UPLOAD
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const base64Data = event.target.result; // This includes "data:image/webp;base64,..."
                     
-                    // Upload to server
-                    console.log('📤 Starting upload to server...');
-                    const formData = new FormData();
-                    formData.append('watermark', file);
+                    console.log('📸 Converting to base64 and storing in localStorage');
                     
-                    const response = await fetch('/api/upload/watermark', {
-                        method: 'POST',
-                        body: formData
+                    // Store base64 in settings - REMOVE OLD FILE PATH DATA
+                    this.settings.watermark.imageData = base64Data;
+                    this.settings.watermark.imagePath = null; // Remove file path
+                    this.settings.watermark.imageUrl = null;  // Remove web URL
+                    
+                    // Show preview immediately using base64 data
+                    const currentWatermarkImage = document.getElementById('watermark-image');
+                    const currentWatermarkPreview = document.getElementById('watermark-preview');
+                    if (currentWatermarkImage && currentWatermarkPreview) {
+                        currentWatermarkImage.src = base64Data; // Use base64 directly
+                        currentWatermarkPreview.classList.remove('hidden');
+                    }
+                    
+                    console.log('✅ Base64 watermark stored:', {
+                        size: base64Data.length,
+                        type: file.type,
+                        hasData: !!this.settings.watermark.imageData,
+                        preview: 'Base64 data (not file path)'
                     });
                     
-                    console.log('📥 Server response status:', response.status);
-                    
-                    if (response.ok) {
-                        const result = await response.json();
-                        console.log('✅ Upload successful:', result);
-                        this.settings.watermark.imagePath = result.watermark.path;
-                        this.settings.watermark.imageUrl = result.watermark.path;
-                        this.saveSettings();
-                        this.showToast('Watermark uploaded successfully!', 'success');
-                    } else {
-                        const errorData = await response.json().catch(() => ({}));
-                        console.error('❌ Upload failed:', errorData);
-                        throw new Error(errorData.message || 'Upload failed');
-                    }
-                    
-                } catch (error) {
-                    console.error('❌ Watermark upload error:', error);
-                    this.showToast('Failed to upload watermark: ' + error.message, 'error');
-                    
-                    // Hide preview on error
-                    const currentWatermarkPreview = document.getElementById('watermark-preview');
-                    if (currentWatermarkPreview) {
-                        currentWatermarkPreview.classList.add('hidden');
-                    }
-                }
+                    this.saveSettings();
+                    this.showToast('Watermark uploaded and stored locally!', 'success');
+                };
+                
+                reader.onerror = (error) => {
+                    console.error('❌ FileReader error:', error);
+                    this.showToast('Failed to read image file', 'error');
+                };
+                
+                reader.readAsDataURL(file);
+                
             } else {
                 console.log('⚠️ Invalid file selected');
                 this.showToast('Please select a valid image file', 'warning');
@@ -433,6 +423,8 @@ setupWatermarkListeners() {
                 currentWatermarkPreview.classList.add('hidden');
                 currentWatermarkImage.src = '';
             }
+            // Clear ALL watermark data
+            this.settings.watermark.imageData = null;
             this.settings.watermark.imagePath = null;
             this.settings.watermark.imageUrl = null;
             this.saveSettings();
@@ -490,7 +482,7 @@ updateWatermarkPreview() {
     }
 }
 
-    // File handling methods loadSettings
+    // File handling methods startProcessing
     handleDragOver(e) {
         e.preventDefault();
         this.uploadZone.classList.add('drag-over');
@@ -782,8 +774,7 @@ loadSettings() {
             fontStyle: 'bold',
             position: 'southeast',
             opacity: 0.7,
-            imagePath: null,
-            imageUrl: null
+            imageData: null  // Base64 data stored here
         },
         naming: {
             type: 'original',
@@ -939,16 +930,25 @@ updateWatermarkUI() {
         this.updateWatermarkPreview();
     }
     
-    // Handle image watermark preview
+    // Handle image watermark preview - USE BASE64 DATA
     if (type === 'image') {
         const watermarkPreview = document.getElementById('watermark-preview');
         const watermarkImage = document.getElementById('watermark-image');
         
-        if (this.settings.watermark.imageUrl && watermarkImage) {
-            watermarkImage.src = this.settings.watermark.imageUrl;
+        console.log('🔍 FRONTEND: Checking watermark base64 data:', {
+            hasImageData: !!this.settings.watermark.imageData,
+            dataLength: this.settings.watermark.imageData?.length || 0
+        });
+        
+        // Use base64 data directly
+        if (this.settings.watermark.imageData && watermarkImage) {
+            watermarkImage.src = this.settings.watermark.imageData;
             if (watermarkPreview) watermarkPreview.classList.remove('hidden');
+            
+            console.log('✅ FRONTEND: Watermark image restored from base64');
         } else {
             if (watermarkPreview) watermarkPreview.classList.add('hidden');
+            console.log('⚠️ FRONTEND: No watermark base64 data found');
         }
     }
     
@@ -988,7 +988,7 @@ updateNamingUI() {
     }
 }
 
-// Complete updateNamingPreview method
+// Complete updateNamingPreview method setupWatermarkListeners
 updateNamingPreview() {
     const preview = document.getElementById('naming-preview-text');
     const type = this.settings.naming.type;
@@ -1052,55 +1052,60 @@ updateSizeEstimate() {
     }
 }
 
-   // Processing methods getFileExtension
-   async startProcessing() {
-       if (this.processing || this.uploadedImages.length === 0) return;
-       
-       this.processing = true;
-       this.showProcessingDashboard();
-       
-       const processBtn = document.getElementById('process-btn');
-       const cancelBtn = document.getElementById('cancel-job');
-       
-       if (processBtn) {
-           processBtn.disabled = true;
-           processBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px;"></div> Starting...';
-       }
-       
-       // Set up cancel button
-       if (cancelBtn) {
-           cancelBtn.onclick = () => this.cancelProcessing();
-           cancelBtn.disabled = false;
-       }
-       
-       try {
-           // Create FormData with files and settings
-           const formData = new FormData();
-           
-           // Add all uploaded files
-           this.uploadedImages.forEach((imageData) => {
-               formData.append('images', imageData.file);
-           });
-           
-           // Add processing settings
-           formData.append('settings', JSON.stringify(this.settings));
-           
-           // Start job using job manager
-           const jobId = await window.jobManager.startJob(formData);
-           console.log('Processing started with job ID:', jobId);
-           
-           // Start polling for progress
-           await this.pollJobProgress(jobId);
-           
-       } catch (error) {
-           console.error('Processing error:', error);
-           this.showToast(`Processing failed: ${error.message}`, 'error');
-           this.hideProcessingDashboard();
-           this.resetProcessButton();
-       } finally {
-           this.processing = false;
-       }
-   }
+   // Processing methods updateWatermarkUI
+async startProcessing() {
+    if (this.processing || this.uploadedImages.length === 0) return;
+    
+    this.processing = true;
+    this.showProcessingDashboard();
+    
+    const processBtn = document.getElementById('process-btn');
+    const cancelBtn = document.getElementById('cancel-job');
+    
+    if (processBtn) {
+        processBtn.disabled = true;
+        processBtn.innerHTML = '<div class="spinner" style="width: 20px; height: 20px;"></div> Starting...';
+    }
+    
+    // Set up cancel button
+    if (cancelBtn) {
+        cancelBtn.onclick = () => this.cancelProcessing();
+        cancelBtn.disabled = false;
+    }
+    
+    try {
+        // Create FormData with files and settings
+        const formData = new FormData();
+        
+        // Add all uploaded files
+        this.uploadedImages.forEach((imageData) => {
+            formData.append('images', imageData.file);
+        });
+        
+        // DEBUG: Log what's being sent
+        console.log('🔍 FRONTEND DEBUG: Full settings object:', this.settings);
+        console.log('🔍 FRONTEND DEBUG: Watermark settings:', this.settings.watermark);
+        console.log('🔍 FRONTEND DEBUG: Settings being sent to backend:', JSON.stringify(this.settings, null, 2));
+        
+        // Add processing settings
+        formData.append('settings', JSON.stringify(this.settings));
+        
+        // Start job using job manager
+        const jobId = await window.jobManager.startJob(formData);
+        console.log('Processing started with job ID:', jobId);
+        
+        // Start polling for progress
+        await this.pollJobProgress(jobId);
+        
+    } catch (error) {
+        console.error('Processing error:', error);
+        this.showToast(`Processing failed: ${error.message}`, 'error');
+        this.hideProcessingDashboard();
+        this.resetProcessButton();
+    } finally {
+        this.processing = false;
+    }
+}
 
    async cancelProcessing() {
        if (!window.jobManager) return;
@@ -1115,108 +1120,139 @@ updateSizeEstimate() {
        this.processing = false;
    }
 
-   async pollJobProgress(jobId) {
-       const pollInterval = 5000;
-       let completed = false;
-       let consecutiveErrors = 0;
-       const maxConsecutiveErrors = 3;
-       
-       console.log(`🔄 Starting polling for job ${jobId}`);
-       
-       while (!completed && this.processing && !window.jobManager.isCancelRequested()) {
-           try {
-               const jobData = await window.jobManager.getJobStatus(jobId);
-               console.log(`📊 Polling job ${jobId}:`, jobData.status, jobData.progress?.percentage + '%');
-               
-               consecutiveErrors = 0;
-               this.updateProgressDisplay(jobData);
-               
-               switch (jobData.status) {
-                   case 'completed':
-                       console.log('✅ Job completed!');
-                       completed = true;
-                       await this.handleProcessingComplete(jobData);
-                       break;
-                       
-                   case 'failed':
-                       console.log('❌ Job failed!');
-                       completed = true;
-                       this.handleProcessingFailed(jobData);
-                       break;
-                       
-                   case 'cancelled':
-                       console.log('⚠️ Job cancelled!');
-                       completed = true;
-                       this.handleProcessingCancelled(jobData);
-                       break;
-                       
-                   case 'processing':
-                       console.log(`⏳ Processing: ${jobData.progress?.percentage || 0}%`);
-                       break;
-               }
-               
-           } catch (error) {
-               consecutiveErrors++;
-               console.error('Polling error:', error);
-               
-               if (consecutiveErrors >= maxConsecutiveErrors) {
-                   this.showToast(`Error checking progress: ${error.message}`, 'error');
-                   completed = true;
-                   this.hideProcessingDashboard();
-                   this.resetProcessButton();
-                   break;
-               }
-           }
-           
-           if (!completed) {
-               await new Promise(resolve => setTimeout(resolve, pollInterval));
-           }
-       }
-       
-       window.jobManager.clearCurrentJob();
-       this.processing = false;
-       console.log('🏁 Polling completed for job:', jobId);
-   }
+    async pollJobProgress(jobId) {
+        const pollInterval = 1000; // Changed from 5000 to 1000 (1 second)
+        let completed = false;
+        let consecutiveErrors = 0;
+        const maxConsecutiveErrors = 3;
+        
+        console.log(`🔄 Starting polling for job ${jobId}`);
+        
+        while (!completed && this.processing && !window.jobManager.isCancelRequested()) {
+            try {
+                const jobData = await window.jobManager.getJobStatus(jobId);
+                console.log(`📊 Polling job ${jobId}:`, jobData.status, `${jobData.progress?.percentage || 0}%`);
+                
+                consecutiveErrors = 0;
+                
+                // Always update progress display, even if percentage is 0
+                this.updateProgressDisplay(jobData);
+                
+                switch (jobData.status) {
+                    case 'completed':
+                        console.log('✅ Job completed!');
+                        completed = true;
+                        await this.handleProcessingComplete(jobData);
+                        break;
+                        
+                    case 'failed':
+                        console.log('❌ Job failed!');
+                        completed = true;
+                        this.handleProcessingFailed(jobData);
+                        break;
+                        
+                    case 'cancelled':
+                        console.log('⚠️ Job cancelled!');
+                        completed = true;
+                        this.handleProcessingCancelled(jobData);
+                        break;
+                        
+                    case 'processing':
+                    case 'queued': // Added queued status
+                        console.log(`⏳ Processing: ${jobData.progress?.percentage || 0}%`);
+                        break;
+                }
+                
+            } catch (error) {
+                consecutiveErrors++;
+                console.error('Polling error:', error);
+                
+                if (consecutiveErrors >= maxConsecutiveErrors) {
+                    this.showToast(`Error checking progress: ${error.message}`, 'error');
+                    completed = true;
+                    this.hideProcessingDashboard();
+                    this.resetProcessButton();
+                    break;
+                }
+            }
+            
+            if (!completed) {
+                await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+        }
+        
+        window.jobManager.clearCurrentJob();
+        this.processing = false;
+        console.log('🏁 Polling completed for job:', jobId);
+    }
 
-   updateProgressDisplay(jobData) {
-       const { progress } = jobData;
-       
-       console.log('📊 Updating progress display:', progress);
-       
-       // Update progress ring
-       const progressBar = document.getElementById('progress-bar');
-       if (progressBar && progress) {
-           const circumference = 2 * Math.PI * 54;
-           const offset = circumference - (progress.percentage / 100) * circumference;
-           progressBar.style.strokeDashoffset = offset;
-       }
-       
-       // Update percentage text
-       const progressPercentage = document.getElementById('progress-percentage');
-       if (progressPercentage) {
-           progressPercentage.textContent = `${progress.percentage || 0}%`;
-       }
-       
-       // Update processed count
-       const processedCount = document.getElementById('processed-count');
-       if (processedCount) {
-           processedCount.textContent = `${progress.processed || 0} / ${progress.total || 0}`;
-       }
-       
-       // Update speed
-       const processingSpeed = document.getElementById('processing-speed');
-       if (processingSpeed && progress.speed) {
-           processingSpeed.textContent = `${progress.speed.toFixed(1)} img/s`;
-       }
-       
-       // Update ETA
-       const timeRemaining = document.getElementById('time-remaining');
-       if (timeRemaining && progress.eta) {
-           const minutes = Math.floor(progress.eta / 60);
-           const seconds = Math.floor(progress.eta % 60);
-           timeRemaining.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-       }
-   }
+    updateProgressDisplay(jobData) {
+        const { progress } = jobData;
+        
+        console.log('📊 Updating progress display:', progress);
+        console.log('📊 Raw jobData:', jobData);
+        
+        // Handle both 'percentage' and 'progress' fields (backend inconsistency)
+        const percentage = progress?.percentage ?? progress?.progress ?? 0;
+        
+        console.log(`🎯 Using percentage: ${percentage}%`);
+        console.log(`🔍 progress.percentage:`, progress?.percentage);
+        console.log(`🔍 progress.progress:`, progress?.progress);
+        console.log(`🔍 progress.processed:`, progress?.processed);
+        console.log(`🔍 progress.total:`, progress?.total);
+        
+        // Update progress ring
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+            const circumference = 2 * Math.PI * 54; // 339.292
+            const clampedPercentage = Math.max(0, Math.min(100, percentage));
+            const offset = circumference - (clampedPercentage / 100) * circumference;
+            
+            console.log(`🎯 Setting stroke-dashoffset: ${offset} (${clampedPercentage}%)`);
+            
+            progressBar.style.strokeDashoffset = offset;
+            
+            // Force browser repaint
+            progressBar.getBoundingClientRect();
+        } else {
+            console.error('❌ Progress bar element not found!');
+        }
+        
+        // Update percentage text
+        const progressPercentage = document.getElementById('progress-percentage');
+        if (progressPercentage) {
+            progressPercentage.textContent = `${Math.round(percentage)}%`;
+            console.log(`📝 Updated percentage text to: ${Math.round(percentage)}%`);
+        } else {
+            console.error('❌ Progress percentage element not found!');
+        }
+        
+        // Update processed count
+        const processedCount = document.getElementById('processed-count');
+        if (processedCount) {
+            const newText = `${progress?.processed || 0} / ${progress?.total || 0}`;
+            processedCount.textContent = newText;
+            console.log(`📝 Updated processed count to: ${newText}`);
+        }
+        
+        // Update speed
+        const processingSpeed = document.getElementById('processing-speed');
+        if (processingSpeed && progress?.speed) {
+            const newSpeed = `${progress.speed.toFixed(1)} img/s`;
+            processingSpeed.textContent = newSpeed;
+            console.log(`📝 Updated speed to: ${newSpeed}`);
+        }
+        
+        // Update ETA
+        const timeRemaining = document.getElementById('time-remaining');
+        if (timeRemaining && progress?.eta) {
+            const minutes = Math.floor(progress.eta / 60);
+            const seconds = Math.floor(progress.eta % 60);
+            const newETA = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            timeRemaining.textContent = newETA;
+            console.log(`📝 Updated ETA to: ${newETA}`);
+        }
+    }
 
    async handleProcessingComplete(jobData) {
        console.log('✅ Processing completed:', jobData);
@@ -1367,32 +1403,55 @@ updateSizeEstimate() {
        this.showToast('Download started!', 'success');
    }
 
-   showProcessingDashboard() {
-       console.log('📊 Showing processing dashboard');
-       
-       if (this.processingDashboard) {
-           this.processingDashboard.classList.remove('hidden');
-       }
-       
-       if (this.imageGrid) {
-           this.imageGrid.style.display = 'none';
-       }
-       
-       const processBtn = document.getElementById('process-btn');
-       if (processBtn) {
-           processBtn.style.display = 'none';
-       }
-       
-       const progressBar = document.getElementById('progress-bar');
-       if (progressBar) {
-           progressBar.style.strokeDashoffset = '339.292';
-       }
-       
-       const progressPercentage = document.getElementById('progress-percentage');
-       if (progressPercentage) {
-           progressPercentage.textContent = '0%';
-       }
-   }
+    showProcessingDashboard() {
+        console.log('📊 Showing processing dashboard');
+        
+        if (this.processingDashboard) {
+            this.processingDashboard.classList.remove('hidden');
+        }
+        
+        if (this.imageGrid) {
+            this.imageGrid.style.display = 'none';
+        }
+        
+        const processBtn = document.getElementById('process-btn');
+        if (processBtn) {
+            processBtn.style.display = 'none';
+        }
+        
+        // Reset progress bar to 0
+        const progressBar = document.getElementById('progress-bar');
+        if (progressBar) {
+            const circumference = 2 * Math.PI * 54; // 339.292
+            progressBar.style.strokeDashoffset = circumference; // Start at 0%
+            progressBar.style.strokeDasharray = circumference;
+            
+            // Force reflow
+            progressBar.offsetHeight;
+        }
+        
+        // Reset percentage text
+        const progressPercentage = document.getElementById('progress-percentage');
+        if (progressPercentage) {
+            progressPercentage.textContent = '0%';
+        }
+        
+        // Reset other progress indicators
+        const processedCount = document.getElementById('processed-count');
+        if (processedCount) {
+            processedCount.textContent = '0 / 0';
+        }
+        
+        const processingSpeed = document.getElementById('processing-speed');
+        if (processingSpeed) {
+            processingSpeed.textContent = '0 img/s';
+        }
+        
+        const timeRemaining = document.getElementById('time-remaining');
+        if (timeRemaining) {
+            timeRemaining.textContent = '--:--';
+        }
+    }
 
    hideProcessingDashboard() {
        this.processingDashboard.classList.add('hidden');
@@ -1642,7 +1701,7 @@ function setMobileViewport() {
 setMobileViewport();
 window.addEventListener('orientationchange', setMobileViewport);
 
-// Error handling for global errors bindSettingsEvents
+// Error handling for global errors updateProgressDisplay
 window.addEventListener('error', (event) => {
    console.error('Global error:', event.error);
    if (window.app) {
@@ -1656,3 +1715,10 @@ window.addEventListener('unhandledrejection', (event) => {
        window.app.showToast('An unexpected error occurred', 'error');
    }
 });
+
+
+//setupWatermarkListeners
+
+
+
+

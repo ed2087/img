@@ -26,7 +26,7 @@ const errorHandler = require('./middleware/errorHandler'); // Capital M
 //const HerokuConfig = require('./config/heroku');      // Capital C
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Trust proxy for Heroku
 app.set('trust proxy', 1);
